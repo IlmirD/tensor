@@ -1,10 +1,8 @@
 import sys
 import os
-import requests
 import textwrap
-from bs4 import BeautifulSoup
-
-import parsing_parameter
+import re
+from urllib.request import urlopen
 
 
 class ParseArticle:
@@ -35,25 +33,25 @@ class ParseArticle:
         file.close()
 
     def get_article(self):
-        page = requests.get(self.url).text
-        soup = BeautifulSoup(page, 'html.parser')
-        # если указан тег для парсинга, ищем по нему
-        tag = parsing_parameter.parsing_tag()
-        if tag:
-            result = soup.find_all(class_=tag)
-        else:
-            result = soup.find_all(self.tags)
+        page = urlopen(self.url)
+        html = page.read().decode('utf-8')
+
+        pattern = r'<p(?:\s.*?)?>(.*?)</p>'
+        result = re.findall(pattern, html)
+        
         text = ''
         for r in result:
-            if r.text != '':
-                links = r.find_all('a')
-                if links != '':
-                    for link in links:
-                        r.a.replace_with(link.text + str('[' + link['href'] + ']')) # помещаем ссылки в квадратные скобки
-                text += ''.join(textwrap.fill(r.text, self.string_width)) + '\n\n'
+            link_text = re.findall(r'<a(?:\s.*?)?>(.*?)</a>', r)
+            link = re.findall('href="([^"]*)', r)
+            new_url = ' '.join(link_text) + ' ' + str(link)
+            if link:
+                new_string = re.sub(r'<a(?:\s.*?)?>(.*?)</a>', new_url, r)
+                text += ''.join(textwrap.fill(new_string, self.string_width)) + '\n\n'
+            else: 
+                text += ''.join(textwrap.fill(''.join(r), self.string_width)) + '\n\n'
+                
         self.save_file(text)
-
-
+        
 if __name__ == '__main__' and (len(sys.argv) > 1):
         pa = ParseArticle(sys.argv[1])
         pa.get_article()
