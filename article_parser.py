@@ -50,7 +50,7 @@ class ParseArticle:
             else: 
                 text += ''.join(textwrap.fill(''.join(r), self.string_width)) + '\n\n'
                 
-        self.save_file(text)
+        self.save_file(text) 
         
 if __name__ == '__main__' and (len(sys.argv) > 1):
         pa = ParseArticle(sys.argv[1])
